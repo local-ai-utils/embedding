@@ -26,15 +26,15 @@ def search(query, count=5):
     
     # Calculate min and max distances for relative comparison
     if results:
-        distances = [distance for _, _, distance in results]
+        distances = [item['_distance'] for item in results]
         min_dist = min(distances)
         max_dist = max(distances)
         range_dist = max_dist - min_dist if max_dist > min_dist else 1.0
         
-        for i, (metadata, vector, distance) in enumerate(results, 1):
+        for i, item in enumerate(results, 1):
             # Calculate relative similarity (0-100%)
-            relative_similarity = 100 * (1 - (distance - min_dist) / range_dist) if range_dist else 100
-            print(f"{i}. {metadata} - Distance: {distance:.4f} (Relative similarity: {relative_similarity:.1f}%)")
+            relative_similarity = 100 * (1 - (item['_distance'] - min_dist) / range_dist) if range_dist else 100
+            print(f"{i}. {item['metadata']} - Distance: {item['_distance']:.4f} (Relative similarity: {relative_similarity:.1f}%)")
 
 if __name__ == '__main__':
     main()

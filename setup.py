@@ -15,6 +15,8 @@ setup(
         'fire',
         'numpy',
         'platformdirs',
-        'pyarrow'
+        'pyarrow',
+        'pylance',
+        'pandas'
     ],
 )

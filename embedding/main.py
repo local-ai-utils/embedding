@@ -2,11 +2,12 @@ import os
 import lancedb
 import numpy as np
 from platformdirs import user_data_dir
-import pyarrow as pa
+import uuid as uuid_module
+from datetime import datetime, timezone
 
 from local_ai_utils_core import LocalAIUtilsCore
-
-VECTOR_DIM=3072
+from .constants import VECTOR_DIM, EMBEDDING_TABLE_NAME
+from .migration_runner import run_migrations
 
 def generate_embeddings(prompt, save=False):
     core = LocalAIUtilsCore()
@@ -45,7 +46,7 @@ def get_datafile_path(filename):
 
 def rebuild_index():
     db     = get_db()
-    table  = db.open_table("embeddings")
+    table  = db.open_table(EMBEDDING_TABLE_NAME)
     n_rows = table.count_rows()
 
     if n_rows < 200: # Flat scan is faster than building an index
@@ -61,17 +62,16 @@ def rebuild_index():
 
 def get_db():
     """
-    Opens (or creates) the LanceDB database.
+    Connects to the LanceDB database and ensures migrations are applied.
     """
     db_path = get_datafile_path("embeddings.lance")
-    
     db = lancedb.connect(db_path)
-    if "embeddings" not in db.table_names():
-        schema = pa.schema([
-            pa.field("vector", pa.list_(pa.float32(), VECTOR_DIM)),
-            pa.field("metadata", pa.string())
-        ])
-        db.create_table("embeddings", schema=schema)
+
+    try:
+        run_migrations(db)
+    except Exception as e:
+        log.error(f"Database migration failed: {e}. Cannot proceed.", exc_info=True)
+        raise SystemExit("Database migration failed.") from e
 
     return db
 
@@ -88,13 +88,45 @@ def add_embedding(embedding, metadata):
 
     db = get_db()
 
-    table = db.open_table("embeddings")
+    table = db.open_table(EMBEDDING_TABLE_NAME)
 
     # Convert to list and store with metadata
     embedding = np.array(embedding, dtype="float32").tolist()
-    table.add([{"vector": embedding, "metadata": metadata}])
+    table.add([{"vector": embedding, "metadata": metadata, "created_at": datetime.now()}])
 
     rebuild_index()
+
+def add_embedding_data(data_to_add):
+    db = get_db()
+    tbl = db.open_table(EMBEDDING_TABLE_NAME)
+
+    # Ensure data_to_add is mutable (e.g., a list of dicts)
+    processed_data = []
+    if isinstance(data_to_add, dict):
+        data_to_add = [data_to_add] # Handle single dict case
+
+    for item in data_to_add:
+        if isinstance(item, dict):
+            new_item = item.copy() # Avoid modifying original if it's reused
+            if 'uuid' not in new_item or not new_item['uuid']: # Generate if not provided
+                 new_item['uuid'] = str(uuid_module.uuid4())
+            # Add other required fields if missing defaults, like created_date
+            if 'created_date' not in new_item or not new_item['created_date']:
+                 new_item['created_date'] = datetime.now(timezone.utc).replace(tzinfo=None) # Store naive UTC
+            # Ensure relevant_date exists, even if null (None becomes NaT/Null in Arrow/Pandas)
+            if 'relevant_date' not in new_item:
+                new_item['relevant_date'] = None
+            processed_data.append(new_item)
+        else:
+            # Handle other data types (like Pydantic models) if necessary
+            # Or raise an error if only dicts are expected
+             raise TypeError("Expected data items to be dictionaries")
+
+
+    # Add the processed data (now including UUIDs)
+    if processed_data:
+         # Consider adding in batches if data can be large
+         tbl.add(processed_data)
 
 def search_similar(query_embedding, k=5):
     """
@@ -117,4 +149,4 @@ def search_similar(query_embedding, k=5):
     results = table.search(query_embedding).distance_type("cosine").limit(k).to_list()
 
     # Extract metadata, vector and distance from results
-    return [(item["metadata"], item["vector"], item["_distance"]) for item in results]
+    return [item for item in results]
