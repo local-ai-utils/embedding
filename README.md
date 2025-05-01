@@ -1,5 +1,5 @@
-# Local AI Utils - Embed
-A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding the ability to generate embeddings. It is exposed as a CLI utility named `embed`, which can be sent a prompt.
+# Local AI Utils - Embedding
+A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding the ability to generate embeddings. It is exposed as a CLI utility named `embedding`, which can be sent a prompt.
 
 ![Embed Demo](/docs/assist.gif)
 
@@ -8,7 +8,7 @@ A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding th
 ### Installation
 Currently installation is only supported via the GitHub remote.
 ```
-pip install git+https://github.com/local-ai-utils/embed
+pip install git+https://github.com/local-ai-utils/embedding
 ```
 
 ### Configuration
