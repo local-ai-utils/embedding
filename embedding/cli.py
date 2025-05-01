@@ -1,5 +1,8 @@
 import fire
-from .main import generate_embeddings, add_embedding, search_similar
+from .main import generate_embeddings, search_similar
+from datetime import datetime, timezone
+import sys # For exiting on error
+import logging
 
 def main():
     return fire.Fire({
@@ -7,8 +10,33 @@ def main():
         "search": search
     })
 
-def get(prompt, save=False):
-    embeddings = generate_embeddings(prompt, save=save)
+log = logging.getLogger(__name__)
+
+def get(prompt, save=False, relevant_date=None):
+    """
+    Generates embeddings for a given text prompt.
+
+    Args:
+        prompt (str): The text to generate embeddings for.
+        save (bool, optional): If True, saves the embedding to the database. Defaults to False.
+        relevant_date (str, optional): An optional ISO8601 timestamp string (e.g., 'YYYY-MM-DDTHH:MM:SS' or 'YYYY-MM-DD')
+                                       associated with the note's content relevance. Assumed UTC if no timezone provided.
+                                       Defaults to None.
+    """
+    parsed_relevant_date_obj = None
+    if relevant_date is not None:
+        try:
+            # Attempt to parse the string to validate format
+            parsed_relevant_date_obj = datetime.fromisoformat(relevant_date)
+            # If the parsed datetime has no timezone, assume it's UTC
+            if parsed_relevant_date_obj.tzinfo is not None:
+                parsed_relevant_date_obj = parsed_relevant_date_obj.astimezone(timezone.utc).replace(tzinfo=None)
+                
+        except ValueError:
+            log.error(f"Invalid relevant_date format: '{relevant_date}'. Please use ISO8601 format (e.g., 'YYYY-MM-DDTHH:MM:SS' or 'YYYY-MM-DD').")
+            sys.exit(1) # Exit if validation fails
+
+    embeddings = generate_embeddings(prompt, save=save, relevant_date=parsed_relevant_date_obj)
     print(embeddings)
 
     if save:

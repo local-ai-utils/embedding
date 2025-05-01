@@ -9,7 +9,7 @@ from local_ai_utils_core import LocalAIUtilsCore
 from .constants import VECTOR_DIM, EMBEDDING_TABLE_NAME
 from .migration_runner import run_migrations
 
-def generate_embeddings(prompt, save=False):
+def generate_embeddings(prompt, save=False, relevant_date=None):
     core = LocalAIUtilsCore()
     client = core.clients.open_ai()
 
@@ -21,7 +21,7 @@ def generate_embeddings(prompt, save=False):
     embedding = response.data[0].embedding
 
     if save:
-        add_embedding(embedding, prompt)
+        add_embedding(embedding, prompt, relevant_date)
 
     return embedding
 
@@ -75,7 +75,7 @@ def get_db():
 
     return db
 
-def add_embedding(embedding, metadata):
+def add_embedding(embedding, metadata, relevant_date=None):
     """
     Adds an embedding with metadata to the LanceDB database.
 
@@ -92,41 +92,9 @@ def add_embedding(embedding, metadata):
 
     # Convert to list and store with metadata
     embedding = np.array(embedding, dtype="float32").tolist()
-    table.add([{"vector": embedding, "metadata": metadata, "created_at": datetime.now()}])
+    table.add([{"vector": embedding, "metadata": metadata, "created_date": datetime.now(), "relevant_date": relevant_date}])
 
     rebuild_index()
-
-def add_embedding_data(data_to_add):
-    db = get_db()
-    tbl = db.open_table(EMBEDDING_TABLE_NAME)
-
-    # Ensure data_to_add is mutable (e.g., a list of dicts)
-    processed_data = []
-    if isinstance(data_to_add, dict):
-        data_to_add = [data_to_add] # Handle single dict case
-
-    for item in data_to_add:
-        if isinstance(item, dict):
-            new_item = item.copy() # Avoid modifying original if it's reused
-            if 'uuid' not in new_item or not new_item['uuid']: # Generate if not provided
-                 new_item['uuid'] = str(uuid_module.uuid4())
-            # Add other required fields if missing defaults, like created_date
-            if 'created_date' not in new_item or not new_item['created_date']:
-                 new_item['created_date'] = datetime.now(timezone.utc).replace(tzinfo=None) # Store naive UTC
-            # Ensure relevant_date exists, even if null (None becomes NaT/Null in Arrow/Pandas)
-            if 'relevant_date' not in new_item:
-                new_item['relevant_date'] = None
-            processed_data.append(new_item)
-        else:
-            # Handle other data types (like Pydantic models) if necessary
-            # Or raise an error if only dicts are expected
-             raise TypeError("Expected data items to be dictionaries")
-
-
-    # Add the processed data (now including UUIDs)
-    if processed_data:
-         # Consider adding in batches if data can be large
-         tbl.add(processed_data)
 
 def search_similar(query_embedding, k=5):
     """
