@@ -1,5 +1,5 @@
 import fire
-from .main import generate_embeddings, search_similar
+from .main import generate_embeddings, search_similar, parse_filter_arg
 from datetime import datetime, timezone
 import sys # For exiting on error
 import logging
@@ -71,65 +71,13 @@ def search(query, count=5, created_date=None, relevant_date=None):
         relevant_date (str or tuple[str], optional): Filter(s) based on relevance date.
                                                      Format: "OPERATOR TIMESTAMP". Can be provided multiple times.
     """
-    # Generate embeddings for the query
     query_embedding = generate_embeddings(query) # Assuming search doesn't need relevant_date
 
-    # --- Parse Filters ---
-    parsed_filters = []
+    parsed_filters = parse_filter_arg(created_date, "created_date")
+    parsed_filters.extend(parse_filter_arg(relevant_date, "relevant_date"))
 
-    def parse_filter_arg(arg_value, field_name):
-        # Handle single string or tuple/list of strings from Fire
-        filters_to_parse = []
-        if isinstance(arg_value, str):
-            filters_to_parse.append(arg_value)
-        elif isinstance(arg_value, (list, tuple)):
-            filters_to_parse.extend(arg_value)
-        elif arg_value is not None:
-             log.warning(f"Unexpected type for {field_name} filter argument: {type(arg_value)}. Ignoring.")
-
-        for filter_str in filters_to_parse:
-            op = None
-            ts_str = None
-            cleaned_filter_str = filter_str.strip()
-
-            # Iterate through sorted operators to find the correct prefix
-            for potential_op in SORTED_OPERATORS:
-                if cleaned_filter_str.startswith(potential_op):
-                    op = potential_op
-                    # Extract the rest of the string after the operator
-                    ts_str = cleaned_filter_str[len(op):].strip()
-                    break # Found the longest matching operator
-
-            if op is None or ts_str is None or not ts_str: # Check if timestamp part is empty
-                 log.error(f"Invalid filter format for {field_name}: '{filter_str}'. Expected 'OPERATOR TIMESTAMP'. Valid operators: {VALID_OPERATORS}")
-                 sys.exit(1)
-
-            try:
-                # Validate and parse timestamp string
-                ts_obj = datetime.fromisoformat(ts_str)
-                # Ensure naive UTC representation
-                if ts_obj.tzinfo is not None:
-                    ts_obj = ts_obj.astimezone(timezone.utc).replace(tzinfo=None)
-                # else: already naive, assume UTC
-
-                parsed_filters.append({
-                    "field": field_name,
-                    "operator": op,
-                    "timestamp": ts_obj # Pass the datetime object
-                })
-                log.info(f"Parsed filter: {field_name} {op} {ts_obj}")
-            except ValueError:
-                log.error(f"Invalid timestamp format in {field_name} filter: '{ts_str}'. Use ISO8601 format.")
-                sys.exit(1)
-
-    parse_filter_arg(created_date, "created_date")
-    parse_filter_arg(relevant_date, "relevant_date")
-    # ---------------------
-
-    # Search for similar embeddings, passing the parsed filters
     results = search_similar(query_embedding, k=count, filters=parsed_filters)
 
-    # Print results
     print(f"Top {len(results)} similar items for '{query}':")
     
     # Calculate min and max distances for relative comparison

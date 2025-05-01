@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 
 # Define allowed operators and fields centrally for validation
 ALLOWED_FILTER_OPERATORS = {'>', '<', '=', '>=', '<=', '~', '~>', '<~'}
+SORTED_OPERATORS = sorted(list(ALLOWED_FILTER_OPERATORS), key=len, reverse=True)
 ALLOWED_FILTER_FIELDS = {'created_date', 'relevant_date'}
 RECENCY_OPERATORS = {'~', '~>', '<~'}
 STRICT_OPERATORS = ALLOWED_FILTER_OPERATORS - RECENCY_OPERATORS
@@ -112,8 +113,53 @@ def rebuild_index(force=False):
     except Exception as e:
         log.error(f"Error during index rebuild: {e}", exc_info=True)
 
+def parse_filter_arg(arg_value, field_name):
+    # Handle single string or tuple/list of strings from Fire
+    filters_to_parse = []
+    if isinstance(arg_value, str):
+        filters_to_parse.append(arg_value)
+    elif isinstance(arg_value, (list, tuple)):
+        filters_to_parse.extend(arg_value)
+    elif arg_value is not None:
+            log.warning(f"Unexpected type for {field_name} filter argument: {type(arg_value)}. Ignoring.")
 
-# --- Search Logic Helper Functions ---
+    parsed_filters = []
+    for filter_str in filters_to_parse:
+        op = None
+        ts_str = None
+        cleaned_filter_str = filter_str.strip()
+
+        # Iterate through sorted operators to find the correct prefix
+        for potential_op in SORTED_OPERATORS:
+            if cleaned_filter_str.startswith(potential_op):
+                op = potential_op
+                # Extract the rest of the string after the operator
+                ts_str = cleaned_filter_str[len(op):].strip()
+                break # Found the longest matching operator
+
+        if op is None or ts_str is None or not ts_str: # Check if timestamp part is empty
+                log.error(f"Invalid filter format for {field_name}: '{filter_str}'. Expected 'OPERATOR TIMESTAMP'. Valid operators: {VALID_OPERATORS}")
+                sys.exit(1)
+
+        try:
+            # Validate and parse timestamp string
+            ts_obj = datetime.fromisoformat(ts_str)
+            # Ensure naive UTC representation
+            if ts_obj.tzinfo is not None:
+                ts_obj = ts_obj.astimezone(timezone.utc).replace(tzinfo=None)
+            # else: already naive, assume UTC
+
+            parsed_filters.append({
+                "field": field_name,
+                "operator": op,
+                "timestamp": ts_obj # Pass the datetime object
+            })
+            log.info(f"Parsed filter: {field_name} {op} {ts_obj}")
+        except ValueError:
+            log.error(f"Invalid timestamp format in {field_name} filter: '{ts_str}'. Use ISO8601 format.")
+            sys.exit(1)
+
+    return parsed_filters
 
 def _validate_filters(filters):
     """Validates the structure and content of parsed filters."""
