@@ -1,5 +1,5 @@
 # Local AI Utils - Embedding
-A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding the ability to generate embeddings. It is exposed as a CLI utility named `embedding`, which can be sent a prompt.
+A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding the ability to generate and search text embeddings. It is exposed as a CLI utility named `embedding`.
 
 ![Embed Demo](/docs/assist.gif)
 
@@ -7,32 +7,38 @@ A plugin for [local-ai-utils](https://github.com/local-ai-utils/core), adding th
 
 ### Installation
 Currently installation is only supported via the GitHub remote.
-```
+```bash
 pip install git+https://github.com/local-ai-utils/embedding
 ```
 
 ### Configuration
-Then update your `ai-utils.yml` file.
-
-- `keys.openai` is your [Open AI secret key](https://platform.openai.com/settings/organization/api-keys).
-
-### Usage
-```
-$ embed "this is some text to embed"
--0.0028965063
--0.023933379
-0.00607678
--0.0015598569
--0.022410722
--0.019919105
-...
-```
-
-## Configuration
-Only an OpenAI key is required
+An OpenAI API key is required for generating embeddings using the `text-embedding-3-large` model. Configure it in your `ai-utils.yml` file.
 
 `~/.config/ai-utils.yaml`
-```
+```yaml
 keys:
-    openai: "sk-proj-abc"
+    openai: "sk-proj-abc..."
+```
+
+### Usage
+
+**Generate and Save an Embedding:**
+```bash
+# Save with just the prompt
+embedding get "Review pull request #482" --save
+
+# Save with a relevant date (e.g., meeting date)
+embedding get "Discuss Q3 roadmap in meeting" --save --relevant-date '2024-07-15'
+
+# Save with a specific relevant time
+embedding get "Team lunch at noon" --save --relevant-date '2024-07-18T12:00:00'
+```
+
+**Search Embeddings:**
+```bash
+$ embedding search "roadmap planning" --count 3
+Top 3 similar items for 'roadmap planning':
+1. Book conference room for roadmap review (UUID: ...) - Distance: 0.2345 (Similarity: 88.3%)
+2. Sync roadmap slide with updated metrics (UUID: ...) - Distance: 0.3123 (Similarity: 75.1%)
+3. Create T-shirt sizes for roadmap items (UUID: ...) - Distance: 0.3567 (Similarity: 68.9%)
 ```
