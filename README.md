@@ -38,7 +38,7 @@ embedding get "Team lunch at noon" --save --relevant-date '2024-07-18T12:00:00'
 ```bash
 $ embedding search "roadmap planning" --count 3
 Top 3 similar items for 'roadmap planning':
-1. Book conference room for roadmap review (UUID: ...) - Distance: 0.2345 (Similarity: 88.3%)
-2. Sync roadmap slide with updated metrics (UUID: ...) - Distance: 0.3123 (Similarity: 75.1%)
-3. Create T-shirt sizes for roadmap items (UUID: ...) - Distance: 0.3567 (Similarity: 68.9%)
+1. Book conference room for roadmap review
+2. Sync roadmap slide with updated metrics
+3. Create T-shirt sizes for roadmap items
 ```
