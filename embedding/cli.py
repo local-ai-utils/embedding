@@ -71,7 +71,7 @@ def search(query, count=5, created_date=None, relevant_date=None):
         relevant_date (str or tuple[str], optional): Filter(s) based on relevance date.
                                                      Format: "OPERATOR TIMESTAMP". Can be provided multiple times.
     """
-    query_embedding = generate_embeddings(query) # Assuming search doesn't need relevant_date
+    query_embedding = generate_embeddings(query)
 
     parsed_filters = parse_filter_arg(created_date, "created_date")
     parsed_filters.extend(parse_filter_arg(relevant_date, "relevant_date"))

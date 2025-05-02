@@ -24,7 +24,7 @@ def store_embedding(text, relevant_date=None):
 
     generate_embeddings(text, save=True, relevant_date=parsed_relevant_date_obj)
 
-    return True
+    return True, None
 
 def search_embeddings(query, count=5, created_date_filters=None, relevant_date_filters=None):
     """
@@ -39,4 +39,15 @@ def search_embeddings(query, count=5, created_date_filters=None, relevant_date_f
 
     results = search_similar(query_embedding, k=count, filters=parsed_filters)
 
-    return results
+    # Extract only the requested fields from the results
+    formatted_results = []
+    for result in results:
+        formatted_result = {
+            "cosine_search_distance": result["_distance"],
+            "relevant_date": result["relevant_date"].strftime("%Y-%m-%d %H:%M:%S"),
+            "created_date": result["created_date"].strftime("%Y-%m-%d %H:%M:%S"),
+            "metadata": result["metadata"]
+        }
+        formatted_results.append(formatted_result)
+    
+    return True, formatted_results

@@ -9,7 +9,7 @@ def register(_, plugin_config):
             {
                 "name": "store_embedding",
                 "description": "Generates and stores a vector embedding for a given piece of text. Optionally include a relevant date (ISO8601 format) associated with the text's content.",
-                "strict": True, # Ensure only defined parameters are accepted
+                "strict": True,
                 "parameters": {
                     "type": "object",
                     "required": ["text", "relevant_date"],
@@ -28,7 +28,7 @@ def register(_, plugin_config):
             },
             {
                 "name": "search_embeddings",
-                "description": "Searches stored embeddings for text similar to the query. Allows filtering by creation date and relevance date using specific operators.",
+                "description": "Searches stored embeddings for text similar to the query. Allows filtering by creation date and relevance date using specific operators. When in doubt, do not use filters and allow the search ranking to choose the best results.",
                 "strict": True,
                 "parameters": {
                     "type": "object",

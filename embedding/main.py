@@ -154,7 +154,6 @@ def parse_filter_arg(arg_value, field_name):
                 "operator": op,
                 "timestamp": ts_obj # Pass the datetime object
             })
-            log.info(f"Parsed filter: {field_name} {op} {ts_obj}")
         except ValueError:
             log.error(f"Invalid timestamp format in {field_name} filter: '{ts_str}'. Use ISO8601 format.")
             sys.exit(1)
