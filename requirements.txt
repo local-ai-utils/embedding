@@ -1,0 +1,5 @@
+lancedb
+numpy
+platformdirs
+pandas
+local-ai-utils-core

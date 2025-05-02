@@ -1,8 +1,8 @@
 import os
 import re
 import importlib
-from pathlib import Path
 import lancedb
+from pathlib import Path
 import logging
 
 from .schema import VERSION_TABLE_NAME, TARGET_SCHEMA, EMBEDDING_TABLE_NAME # Need TARGET_SCHEMA for final check
