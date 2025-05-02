@@ -6,11 +6,10 @@ import uuid as uuid_module
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 import logging
-
+import sys
 from local_ai_utils_core import LocalAIUtilsCore
 from .constants import VECTOR_DIM, EMBEDDING_TABLE_NAME
 from .migration_runner import run_migrations
-from .schema import TARGET_SCHEMA
 
 log = logging.getLogger(__name__)
 
@@ -138,7 +137,7 @@ def parse_filter_arg(arg_value, field_name):
                 break # Found the longest matching operator
 
         if op is None or ts_str is None or not ts_str: # Check if timestamp part is empty
-                log.error(f"Invalid filter format for {field_name}: '{filter_str}'. Expected 'OPERATOR TIMESTAMP'. Valid operators: {VALID_OPERATORS}")
+                log.error(f"Invalid filter format for {field_name}: '{filter_str}'. Expected 'OPERATOR TIMESTAMP'. Valid operators: {ALLOWED_FILTER_OPERATORS}")
                 sys.exit(1)
 
         try:
